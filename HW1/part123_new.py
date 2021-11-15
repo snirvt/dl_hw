@@ -1,5 +1,6 @@
 from utils import shuffle_and_batch, train_test_split, get_index
-from cross_entropy_loss_layer import CrossEntropyLossLayer
+# from cross_entropy_loss_layer import CrossEntropyLossLayer
+from softmax_regression import SoftmaxRegression
 from data.dataloader import DataLoader
 from itertools import product
 from optimizer import SGD
@@ -45,8 +46,8 @@ def run_tests(dataset_hidden_layers=None,
                                         total=len_batch_sizes * len_learning_rates):
             input_dim = X_train.shape[0]
             output_dim = y_train.shape[0]
-            W = np.random.randn(input_dim, output_dim)
-            net = CrossEntropyLossLayer(W)
+            # W = np.random.randn(input_dim, output_dim)
+            net = SoftmaxRegression(input_dim, output_dim)
             optimizer = SGD(lr=lr)
             val_epoch_accuracy, train_epoch_accuracy = train(net, optimizer, X_train, y_train, X_test, y_test)
             ax = fig.add_subplot(len_learning_rates, len_batch_sizes, i + 1)
@@ -74,15 +75,15 @@ def train(net, optimizer, X_train, y_train, X_test, y_test):
         for batch, labels in tqdm(zip(train_batches, train_labels),
                                   total=len(train_batches)):
             labels = labels.T
-            batch_loss = net(batch, labels)
+            batch_loss = net.loss(batch, labels)
             train_loss.append(batch_loss)
-            net.gradient_wrt_weights(batch, labels)
+            net.gradient(batch, labels)
             W_old, grad = net.W, net.g_W
             net.W = optimizer.step(grad, W_old)
 
             # calc accuracy
             labels = get_index(labels)
-            prob_prediction = net.predict(batch)
+            prob_prediction = net(batch)
             label_prediction = net.predict_labels(prob_prediction)
             train_accuracy = np.append(train_accuracy, label_prediction == labels, axis=0)
 
@@ -95,7 +96,7 @@ def train(net, optimizer, X_train, y_train, X_test, y_test):
         for v_batch, v_labels in tqdm(zip(val_batches, val_labels),
                                   total=len(val_batches)):
             v_labels = v_labels.T
-            val_probs_prediction = net.predict(v_batch)
+            val_probs_prediction = net(v_batch)
             val_label_prediction = net.predict_labels(val_probs_prediction)
             v_labels = get_index(v_labels)
             val_accuracy = np.append(val_accuracy, val_label_prediction == v_labels, axis=0)
