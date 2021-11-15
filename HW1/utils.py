@@ -41,3 +41,8 @@ def get_index(labels):
 def split_to_batches(X, y):
     return (np.array_split(X, round(X.shape[-1] / config.BATCH_SIZE), axis = 1),
             np.array_split(y, round(y.shape[-1] / config.BATCH_SIZE), axis = 1))
+    
+    
+def mse(y, y_pred):
+    m = y.shape[0]
+    return (1/m) * np.sum((y-y_pred)**2)
