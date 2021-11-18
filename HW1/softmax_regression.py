@@ -8,8 +8,10 @@ class SoftmaxRegression():
 
     # initializes the weights
     def init_weights(self, input_dim, output_dim):
-        return np.random.randn(input_dim, output_dim)
-
+        # return np.random.randn(input_dim, output_dim)/((np.sqrt(input_dim)*np.sqrt(output_dim))**2)
+        return np.random.randn(input_dim, output_dim)/(np.sqrt(input_dim*output_dim))
+        # return np.zeros((input_dim, output_dim))
+    
     # updates the gradient wrt to weights and data
     def gradient(self, X, C):
         m = X.shape[-1]  # batchsize
@@ -18,8 +20,9 @@ class SoftmaxRegression():
         exp_linear = np.exp(linear - max)  # applying normalization
         result = exp_linear / np.sum(exp_linear, axis=1, keepdims=True)  # softmax
         derivative = np.subtract(result, C)
-        self.g_W = 1 / m * (X @ derivative)
-        self.g_X = 1 / m * (self.W @ derivative.T)
+        self.g_W = (1 / m) * (X @ derivative)
+        self.g_X = (1 / m) * (self.W[:-1,:] @ derivative.T) # removing bias weight, since its not going backwards
+                                                            # self.g_X includes bias from next layer, need to varify it's ok
 
     # returns the loss
     def loss(self, X, C):
@@ -29,7 +32,7 @@ class SoftmaxRegression():
         exp_linear = np.exp(linear - max)  # applying normalization
         result = exp_linear / np.sum(exp_linear, axis=1, keepdims=True)  # softmax
         loss = np.sum(C * np.log(result))
-        return -1 / m * loss
+        return (-1 / m) * loss
 
     # predics the labels themselves
     def predict_labels(self, output):
@@ -50,3 +53,4 @@ class SoftmaxRegression():
         exp_linear = np.exp(linear - max)
         result = exp_linear / np.sum(exp_linear, axis=1, keepdims=True)
         return result
+    

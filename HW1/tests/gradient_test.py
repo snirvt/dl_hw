@@ -37,7 +37,7 @@ def gradient_test():
     plt.plot(l, order_2, label='First order approx')
     plt.yscale('log')
     plt.legend()
-    plt.savefig('../figures/grad_test.png', transparent=True, bbox_inches='tight', pad_inches=0)
+    plt.savefig('./figures/grad_test.png', transparent=True, bbox_inches='tight', pad_inches=0)
     plt.show()
 
 if __name__ == '__main__':
