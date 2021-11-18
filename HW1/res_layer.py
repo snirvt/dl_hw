@@ -24,6 +24,16 @@ class ResLayer():
         self.g_X = eye + W2_diag_W1
         return self.g_X
 
+    def jacTMV_x(self, X, v):
+        linear = self.linear_1(X)
+        act_deriv = self.activation.deriv(linear)
+        W2_diag = self.W2 * act_deriv
+        W2_diag_W1 = W2_diag @ self.W1
+        W2_diag_I = np.eye(W2_diag_W1.shape[0]) + W2_diag_W1
+        result = W2_diag_I.T @ v
+        return result
+
+
 
     def jac_b(self, x):
         linear = self.linear_1(x)

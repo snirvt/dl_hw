@@ -1,54 +1,46 @@
+#!/usr/bin/env python3
+
 from optimizer import SGD
 import matplotlib.pyplot as plt
 import numpy as np
 
-def sgd_test():
-    optimizer = SGD()
-    X = np.linspace(0,5, 100)
-    y = 2*X + np.random.randn(X.shape[0])
-    N_EPOCHS = 20
-    W0_new = 0
-    W1_new = 0
-    loss = np.array([])
 
-    for epoch in range(N_EPOCHS):
-        y_pred = np.array([])
-        error = np.array([])    # W0 error
-        error_x = np.array([])  # W1 error
+from utils import mse
 
-        W0 = W0_new
-        W1 = W1_new
+optimizer = SGD(lr=0.1)
+X = np.linspace(-5,5, 100)
+y = 2*X - 12 + np.random.randn(X.shape[0])
+y = y.reshape(-1,1)
 
-        for x_i in X:
-            y_pred = np.append(y_pred, W0 + W1 * x_i)
+W = np.zeros((2,1))
 
-        error = np.append(error, y_pred - y)
-        error_x = np.append(error_x, error * X)
-        loss_val = (error ** 2).mean()
-        loss = np.append(loss, loss_val)
+X = np.concatenate((X.reshape(-1,1) , np.ones((X.shape[0],1))), axis=1)
+loss = []
+for _ in range(100):
+    y_pred = X @ W
+    loss.append(mse(y,y_pred))
+    grad = X.T @ ((y_pred-y) * (1/X.shape[0]))
+    W = optimizer.step(grad, W)
 
-        W0_new = optimizer.step(sum(error), W0)
-        W1_new = optimizer.step(sum(error_x), W1)
-
-    print(f'W0 = {W0_new}')
-    print(f'W1 = {W1_new}')
-    print(f'Prediction: {y_pred}')
-    print(f'Error: {error}')
-    print(f'LSE: {loss}')
-    fig, axs = plt.subplots(2)
-    axs[0].plot(loss)
-    axs[0].set_title('Least squares error per iteration')
-    axs[0].set_xlabel('Iterations')
-    axs[0].set_ylabel('Loss value')
-    axs[1].plot(X, y_pred, color='r')
-    axs[1].scatter(X, y)
-    axs[1].legend(['Prediction', 'Actual y'])
-    axs[1].set_title('Graphs')
-    axs[1].set_xlabel('x')
-    axs[1].set_ylabel('y')
-    fig.tight_layout()
-    plt.savefig('../figures/sgd_test.png', transparent=True, bbox_inches='tight', pad_inches=0)
-    plt.show()
-
-if __name__ == '__main__':
-    sgd_test()
+y_pred = X @ W
+loss.append(mse(y,y_pred))
+    
+print(f'W0 = {W[0]}')
+print(f'W1 = {W[1]}')
+print(f'Prediction: {y_pred}')
+print(f'Error: {loss[-1]}')
+print(f'LSE: {loss}')
+fig, axs = plt.subplots(2)
+axs[0].plot(loss)
+axs[0].set_title('Least squares error per iteration')
+axs[0].set_xlabel('Iterations')
+axs[0].set_ylabel('Loss value')
+axs[1].plot(X[:,0], y_pred, color='r')
+axs[1].scatter(X[:,0], y)
+axs[1].legend(['Prediction', 'Actual y'])
+axs[1].set_title('Graphs')
+axs[1].set_xlabel('x')
+axs[1].set_ylabel('y')
+fig.tight_layout()
+plt.savefig('../figures/sgd_test.png', transparent=True, bbox_inches='tight', pad_inches=0)
+plt.show()
