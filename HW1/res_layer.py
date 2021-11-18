@@ -24,14 +24,21 @@ class ResLayer():
         self.g_X = eye + W2_diag_W1
         return self.g_X
 
+    
     def jacTMV_x(self, X, v):
-        linear = self.linear_1(X)
-        act_deriv = self.activation.deriv(linear)
-        W2_diag = self.W2 * act_deriv
-        W2_diag_W1 = W2_diag @ self.W1
-        W2_diag_I = np.eye(W2_diag_W1.shape[0]) + W2_diag_W1
-        result = W2_diag_I.T @ v
-        return result
+        jac_x = self.jac_x(X)
+        return jac_x.T @ v
+
+
+
+    # def jacTMV_x(self, X, v):
+    #     linear = self.linear_1(X)
+    #     act_deriv = self.activation.deriv(linear)
+    #     W2_diag = self.W2 * act_deriv
+    #     W2_diag_W1 = W2_diag @ self.W1
+    #     W2_diag_I = np.eye(W2_diag_W1.shape[0]) + W2_diag_W1
+    #     result = W2_diag_I.T @ v
+    #     return result
 
 
 
@@ -45,7 +52,9 @@ class ResLayer():
         self.g_b =  W2_diag
         return self.g_b
 
-
+    def jacTMV_b(self, x, v):
+        jac_b = self.jac_b(x)
+        return jac_b.T @ v
         
     def jacMV_W1(self, x, v):
         linear = self.linear_1(x)
@@ -60,6 +69,52 @@ class ResLayer():
 
         self.g_W1 = W2_diag_vxT
         return self.g_W1
+    
+    
+    def jacTMV_W1_kron_trick(self, x,v): ## worksonly with 1 sample x
+        linear = self.linear_1(x)
+        act_deriv = self.activation.deriv(linear)
+        diag_w2_v = 0
+        # w2_diag_kron = 0
+        for i in range(x.shape[1]): 
+            # kron = np.kron(x[:,i].T, np.eye(x.shape[0]-1))
+            diag = np.diag(act_deriv[:,i])
+            W2Tv = self.W2.T @ v
+            diag_w2_v += diag @ W2Tv
+            # w2_diag_kron += self.W2 @ diag @ kron
+        
+        self.g_W1 = diag_w2_v @ x.T # identity of kron 
+        # self.g_W1 = w2_diag_kron
+        return self.g_W1
+    
+    def jacTMV_W1(self, x, v):
+        jac_W1 = self.jac_W1(x)
+        self.g_W1 = jac_W1.T @ v
+        return self.g_W1
+    
+    
+    
+    
+    def jacTMV_W2(self, x, v):
+        linear = self.linear_1(x)
+        act = self.activation(linear)
+        self.g_W2 = v @ act.T
+        # linear = self.linear_1(x)
+        # act = self.activation(linear)
+        # kron = np.kron(act.T, np.eye(act.shape[0])).T
+        # self.g_W2 = kron @ v.T
+        return self.g_W2
+
+    
+    # def jacTMV_W2(self, x, v):
+    #     linear = self.linear_1(x)
+    #     act = self.activation(linear)
+    #     self.g_W2 = v @ act
+    #     # linear = self.linear_1(x)
+    #     # act = self.activation(linear)
+    #     # kron = np.kron(act.T, np.eye(act.shape[0]))
+    #     # self.g_W2 = v @ kron
+        #  return self.g_W2
     
     
     def jacMV_W2(self, x, v):
