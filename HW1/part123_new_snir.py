@@ -1,3 +1,4 @@
+from os import access
 from utils import shuffle_and_batch, train_test_split, get_index
 # from cross_entropy_loss_layer import CrossEntropyLossLayer
 from softmax_regression import SoftmaxRegression
@@ -9,6 +10,108 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 from configurations import config
+
+
+dataset_name = config.DATASETS_NAMES
+dataset_name = 'SwissRollData'
+dataset_name =  'PeaksData'
+
+data = DataLoader.load_dataset(dataset_name)
+X_train, y_train, X_test, y_test = train_test_split(data)
+
+
+
+# X_train = np.random.multivariate_normal([-1, -1], [[1, 0], [0, 1]], 5000).T
+# X_train = np.concatenate((X_train, np.random.multivariate_normal([1, 1], [[1, 0], [0, 1]], 5000).T), axis=1)
+# X_test = np.random.multivariate_normal([-1, -1], [[1, 0], [0, 1]], 5000).T
+# X_test = np.concatenate((X_test, np.random.multivariate_normal([1, 1], [[1, 0], [0, 1]], 5000).T), axis=1)
+
+# y_train = np.zeros((2, 10000)).astype(np.float32)
+# y_train[0,:5000] = 1
+# y_train[1,5000:] = 1
+# y_test = np.zeros((2, 10000))
+# y_test[0,:5000] = 1
+# y_test[1,5000:] = 1
+
+X_train = np.concatenate((X_train, np.ones((1,X_train.shape[1]))), axis=0)
+X_test = np.concatenate((X_test, np.ones((1,X_test.shape[1]))), axis=0)
+
+input_dim = X_train.shape[0]
+output_dim = y_train.shape[0]
+# W = np.random.randn(input_dim, output_dim)
+net = SoftmaxRegression(input_dim, output_dim)
+optimizer = SGD(lr=0.001)
+config.BATCH_SIZE = 500
+
+
+
+# n_epochs = config.NUM_EPOCHS
+n_epochs = 100
+val_loss = []
+val_accuracy = []
+train_accuracy = []
+train_loss = []
+Xtrain, Ytrain, train_loader, val_loader = shuffle_and_batch(X_train, y_train, X_test, y_test)                                                                                                          
+
+for epoch in range(n_epochs):
+    train_batches, train_labels = train_loader
+    val_batches, val_labels = val_loader
+    n_correct = 0
+    n_cnt = 0
+    batch_loss = []
+    if epoch % 10 == 0:
+        optimizer.lr *= 0.995
+        
+    # for batch, labels in tqdm(zip(train_batches, train_labels),total=len(train_batches)):                    
+    for batch, labels in zip(train_batches, train_labels):                    
+        labels = labels.T
+        batch_loss.append(net.loss(batch, labels))
+        
+        net.gradient(batch, labels)
+        W_old, grad = net.W, net.g_W
+        net.W = optimizer.step(grad, W_old)
+
+        # calc accuracy
+        labels = get_index(labels)
+        prob_prediction = net(batch)
+        label_prediction = net.predict_labels(prob_prediction)
+        n_correct += sum(label_prediction == labels)
+        n_cnt += len(label_prediction)
+    train_loss.append(np.sum(batch_loss))
+    train_accuracy.append(n_correct/n_cnt)
+    
+    n_correct = 0
+    n_cnt = 0
+    batch_loss = []
+    for batch, labels in zip(val_batches, val_labels):
+        labels = labels.T
+        batch_loss.append(net.loss(batch, labels))
+        # calc accuracy
+        labels = get_index(labels)
+        prob_prediction = net(batch)
+        label_prediction = net.predict_labels(prob_prediction)
+        n_correct += sum(label_prediction == labels)
+        n_cnt += len(label_prediction)
+    val_loss.append(np.sum(batch_loss))
+    val_accuracy.append(n_correct/n_cnt)
+    print('epoch: {}'.format(epoch))
+    print('train loss: {}, val loss: {}'.format(train_loss[-1], val_loss[-1]))
+    print('train accuracy: {}, val accuracy: {}'.format(train_accuracy[-1], val_accuracy[-1]))
+        # train_accuracy = np.append(train_accuracy, label_prediction == labels, axis=0)
+        
+    
+plt.figure(1)
+plt.subplot(211)
+plt.plot(range(len(train_loss)), train_loss, label='loss')
+plt.plot(range(len(val_loss)), val_loss, label='val loss')
+plt.legend()
+plt.subplot(212)
+plt.plot(range(len(train_accuracy)), train_accuracy, label='accuracy')
+plt.plot(range(len(val_accuracy)), val_accuracy, label='val accuracy')
+plt.legend()
+plt.show() 
+
+
 
 
 def run_tests(dataset_hidden_layers=None,
