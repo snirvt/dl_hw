@@ -36,6 +36,7 @@ def jacobian_transpose_test_X():
     plt.ylabel('Error')
     plt.yscale('log')
     plt.legend()
+    plt.savefig('./figures/Jacobian_test_resnet_X.png', transparent=True, bbox_inches='tight', pad_inches=0)
     plt.show()
 
 # jacobian_transpose_test_X()
@@ -105,14 +106,11 @@ def jacobian_transpose_test_b():
     plt.xlabel('Iteration')
     plt.ylabel('Error')
     plt.legend()
+    plt.savefig('./figures/Jacobian_test_resnet_b.png', transparent=True, bbox_inches='tight', pad_inches=0)
     plt.show()
 
 # jacobian_transpose_test_b()
     
-
-
-
-
 
 def jacobian_test_b():
     d = np.random.rand(2, 1)
@@ -178,6 +176,7 @@ def jacobian_transpose_test_W1():
     plt.xlabel('Iteration')
     plt.ylabel('Error')
     plt.legend()
+    plt.savefig('./figures/Jacobian_test_resnet_W1.png', transparent=True, bbox_inches='tight', pad_inches=0)
     plt.show()
 
 # jacobian_transpose_test_W1()
@@ -250,9 +249,10 @@ def jacobian_test_transpose_W2():
     plt.xlabel('Iteration')
     plt.ylabel('Error')
     plt.legend()
+    plt.savefig('./figures/Jacobian_test_resnet_W2.png', transparent=True, bbox_inches='tight', pad_inches=0)
     plt.show()
 
-# jacobian_test_transpose_W2()
+jacobian_test_transpose_W2()
 
 def jacobian_test_W2():
     d = np.random.rand(3, 2)

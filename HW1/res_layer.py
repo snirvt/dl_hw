@@ -69,7 +69,16 @@ class ResLayer():
 
         self.g_W1 = W2_diag_vxT
         return self.g_W1
-    
+
+    def jacTMV_X_new(self, x, v):
+        linear = self.linear_1(x)
+        deriv = self.activation.deriv(linear)
+        deriv_W1 = deriv * self.W1
+        deriv_W1_v = deriv_W1 @ v
+        identity = np.eye(np.shape(deriv_W1_v[0]))
+        self.g_W1 = identity + deriv_W1_v
+        return self.g_W1
+
     
     def jacTMV_W1_kron_trick(self, x,v): ## worksonly with 1 sample x
         linear = self.linear_1(x)
