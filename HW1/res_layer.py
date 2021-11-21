@@ -17,6 +17,7 @@ class ResLayer():
         linear = self.linear_1(x)
         act_deriv = self.activation.deriv(linear)
         W2_diag_W1 = 0
+
         for i in range(x.shape[1]): 
             diag = np.diag(act_deriv[:,i])
             W2_diag_W1 += self.W2 @ diag @ self.W1
@@ -28,6 +29,25 @@ class ResLayer():
     def jacTMV_x(self, X, v):
         jac_x = self.jac_x(X)
         return jac_x.T @ v
+
+
+
+    def jac_x_TMV(self, x, v):
+        linear = self.linear_1(x)
+        act_deriv = self.activation.deriv(linear)
+        W2_diag_W1 = 0
+        
+        I + W2@(W1@x+b)* W1#@V
+        
+        (self.W2 @ (linear * (self.W1 @ v)))
+        for i in range(x.shape[1]): 
+            diag = np.diag(act_deriv[:,i])
+            W2_diag_W1 += self.W2 @ diag @ self.W1
+        eye = np.eye(W2_diag_W1.shape[0])
+        self.g_X = eye + W2_diag_W1
+        return self.g_X
+
+
 
 
 
@@ -55,6 +75,13 @@ class ResLayer():
     def jacTMV_b(self, x, v):
         jac_b = self.jac_b(x)
         return jac_b.T @ v
+    
+    def jacTMV_b_batch(self, x, v):
+        linear = self.linear_1(x)
+        act_deriv = self.activation.deriv(linear)
+        self.g_b = np.sum(act_deriv * (self.W2.T @ v), axis=1).reshape(-1,1)
+        return self.g_b
+    
         
     def jacMV_W1(self, x, v):
         linear = self.linear_1(x)
@@ -69,6 +96,30 @@ class ResLayer():
 
         self.g_W1 = W2_diag_vxT
         return self.g_W1
+
+
+    def jacTMV_W1_batch(self, x, v):
+        linear = self.linear_1(x)
+        act_deriv = self.activation.deriv(linear)
+        self.g_W1 = (act_deriv * (self.W2.T @ v)) @ x.T
+        return self.g_W1
+
+
+    def jacTMV_W2_batch(self, x, v):
+        linear = self.linear_1(x)
+        act = self.activation(linear)
+        self.g_W2 = v @ act.T
+        return self.g_W2
+
+    def jacTMV_x_batch(self, x, v):
+        linear = self.linear_1(x)
+        act_deriv = self.activation.deriv(linear)
+        self.g_X = v + (self.W1.T @ (act_deriv * (self.W2.T @ v)))
+        return self.g_X
+        
+
+
+
 
     def jacTMV_X_new(self, x, v):
         linear = self.linear_1(x)
