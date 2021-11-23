@@ -6,7 +6,8 @@ import numpy as np
 from copy import deepcopy
 
 from activations import Tanh
-
+from neural_network import NeuralNetwork
+from losses import CrossEntropy
 
 ''' jacobian test X'''
 def jacobian_test_x():
@@ -47,7 +48,7 @@ def jacobian_test_x():
 ''' jacobian test b'''
 def jacobian_test_b():
     d = np.random.rand(2, 1)
-    x = np.random.rand(3, 10)
+    x = np.random.rand(3, 1)
     normalized_d = d / np.linalg.norm(d)
 
     eps_num = 20
@@ -115,6 +116,170 @@ def jacobian_test_W():
 jacobian_test_x()
 jacobian_test_b()
 jacobian_test_W()
+
+
+
+
+
+
+''' jacobian test NN X'''
+def jacobian_test_nn_x():
+    d = np.random.rand(2, 1)
+    x = np.random.rand(2, 1)
+    normalized_d = d / np.linalg.norm(d)
+
+    eps_num = 20
+    eps_vals = np.geomspace(0.5, 0.5 ** eps_num, eps_num)
+    # lin1 = Dense(3, 2, Tanh()) 
+    lin1 = NeuralNetwork([2,10,10,2], lr=0.1)
+    fx = lin1(x)[:,0:1]
+    # u = np.random.randn(2, 1)
+    # gx = np.dot(fx.T, u)
+    no_grad, x_grad = [], []
+
+    labels = np.random.randint(2, size=1)  # randomly creates 3 labels for 10 samples
+    C = np.zeros((2,labels.size))          # 10 samples, 3 labels (10, 3)
+    C[labels,np.arange(labels.size)] = 1   # columns in c are one-hot encoded
+
+    loss = CrossEntropy()
+    fx_loss = loss(fx, C)
+
+    for eps in eps_vals:
+        e_normalized_d = eps * normalized_d
+        x_perturbatzia = x + e_normalized_d
+        
+        fx_d = lin1(x_perturbatzia)
+        fx_d_loss = loss(fx_d, C)
+        # jackMV_x = lin1.jacTMV_x(x, u)[:,0:1]
+        lin1.backprop(C, update=False)
+        jackMV_x = lin1.g_X[-1]
+        no_grad.append(np.abs(fx_d_loss - fx_loss))
+        x_grad.append(np.abs(fx_d_loss - fx_loss - e_normalized_d.ravel().T @ jackMV_x.ravel()))
+    l = range(eps_num)
+    plt.plot(l, no_grad, label='First Order')
+    plt.plot(l, x_grad, label='Second Order')
+    plt.title('Jacobian transposed verification wrt X')
+    plt.xlabel('Iteration')
+    plt.ylabel('Error')
+    plt.yscale('log')
+    plt.legend()
+    plt.show()
+
+
+jacobian_test_nn_x()
+
+
+
+
+''' jacobian test NN W'''
+def jacobian_test_nn_W():
+    d = np.random.rand(2, 2)
+    x = np.random.rand(2, 1)
+    normalized_d = d / np.linalg.norm(d)
+
+    eps_num = 20
+    eps_vals = np.geomspace(0.5, 0.5 ** eps_num, eps_num)
+    # lin1 = Dense(3, 2, Tanh()) 
+    lin1 = NeuralNetwork([2,2,10,2,2], lr = 0.1)
+    fx = lin1(x)[:,0:1]
+    # u = np.random.randn(2, 1)
+    # gx = np.dot(fx.T, u)
+    no_grad, x_grad = [], []
+
+    labels = np.random.randint(2, size=1)  # randomly creates 3 labels for 10 samples
+    C = np.zeros((2,labels.size))          # 10 samples, 3 labels (10, 3)
+    C[labels,np.arange(labels.size)] = 1   # columns in c are one-hot encoded
+
+    loss = CrossEntropy()
+    fx_loss = loss(fx, C)
+    W = deepcopy(lin1.model[0].W)
+    
+    for eps in eps_vals:
+        e_normalized_d = eps * normalized_d
+        # x_perturbatzia = x + e_normalized_d
+        lin1.model[0].W = W + e_normalized_d
+        fx_d = lin1(x)
+        fx_d_loss = loss(fx_d, C)
+        # jackMV_x = lin1.jacTMV_x(x, u)[:,0:1]
+        lin1.model[0].W = deepcopy(W)
+        lin1.backprop(C, update=False)
+        jackMV_W = lin1.g_W[-1]
+        no_grad.append(np.abs(fx_d_loss - fx_loss))
+        x_grad.append(np.abs(fx_d_loss - fx_loss - e_normalized_d.ravel().T @ jackMV_W.ravel()))
+    l = range(eps_num)
+    plt.plot(l, no_grad, label='First Order')
+    plt.plot(l, x_grad, label='Second Order')
+    plt.title('Jacobian transposed verification wrt X')
+    plt.xlabel('Iteration')
+    plt.ylabel('Error')
+    plt.yscale('log')
+    plt.legend()
+    plt.show()
+
+
+jacobian_test_nn_W()
+
+
+
+
+
+
+
+
+
+''' jacobian test NN b'''
+def jacobian_test_nn_b():
+    d = np.random.rand(2, 1)
+    x = np.random.rand(2, 1)
+    normalized_d = d / np.linalg.norm(d)
+
+    eps_num = 20
+    eps_vals = np.geomspace(0.5, 0.5 ** eps_num, eps_num)
+    # lin1 = Dense(3, 2, Tanh()) 
+    lin1 = NeuralNetwork([2,2,10,2,2], lr=0.1)
+    fx = lin1(x)[:,0:1]
+    # u = np.random.randn(2, 1)
+    # gx = np.dot(fx.T, u)
+    no_grad, x_grad = [], []
+
+    labels = np.random.randint(2, size=1)  # randomly creates 3 labels for 10 samples
+    C = np.zeros((2,labels.size))          # 10 samples, 3 labels (10, 3)
+    C[labels,np.arange(labels.size)] = 1   # columns in c are one-hot encoded
+
+    loss = CrossEntropy()
+    fx_loss = loss(fx, C)
+    b = deepcopy(lin1.model[0].b)
+    
+    for eps in eps_vals:
+        e_normalized_d = eps * normalized_d
+        # x_perturbatzia = x + e_normalized_d
+        lin1.model[0].b = b + e_normalized_d
+        fx_d = lin1(x)
+        fx_d_loss = loss(fx_d, C)
+        # jackMV_x = lin1.jacTMV_x(x, u)[:,0:1]
+        lin1.model[0].b = deepcopy(b)
+        lin1.backprop(C, update=False)
+        jackMV_b = lin1.g_b[-1]
+        no_grad.append(np.abs(fx_d_loss - fx_loss))
+        x_grad.append(np.abs(fx_d_loss - fx_loss - e_normalized_d.ravel().T @ jackMV_b.ravel()))
+    l = range(eps_num)
+    plt.plot(l, no_grad, label='First Order')
+    plt.plot(l, x_grad, label='Second Order')
+    plt.title('Jacobian transposed verification wrt b')
+    plt.xlabel('Iteration')
+    plt.ylabel('Error')
+    plt.yscale('log')
+    plt.legend()
+    plt.show()
+
+
+jacobian_test_nn_b()
+
+
+
+
+
+
 
 
 
