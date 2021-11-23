@@ -2,38 +2,24 @@ import numpy as np
 
 class SoftmaxRegression():
     def __init__(self, input_dim, output_dim):
-        self.W = self.init_weights(input_dim, output_dim)
+        self.W = self.init_weights(output_dim,input_dim)
+        self.b = self.init_weights(output_dim, 1)
         self.g_W = None
+        self.g_b = None
         self.g_X = None
 
     # initializes the weights
     def init_weights(self, input_dim, output_dim):
-        # return np.random.randn(input_dim, output_dim)/((np.sqrt(input_dim)*np.sqrt(output_dim))**2)
         return np.random.randn(input_dim, output_dim)/(np.sqrt(input_dim*output_dim))
-        # return np.zeros((input_dim, output_dim))
     
     # updates the gradient wrt to weights and data
-    def gradient(self, X, C):
-        m = X.shape[-1]  # batchsize
-        linear = X.T @ self.W  # linear mapping
-        max = np.max(linear, axis=1, keepdims=True)  # normalization
-        exp_linear = np.exp(linear - max)  # applying normalization
-        result = exp_linear / np.sum(exp_linear, axis=1, keepdims=True)  # softmax
-        derivative = np.subtract(result, C)
-        self.g_W = (1 / m) * (X @ derivative)
-        self.g_X = (1 / m) * (self.W[:-1,:] @ derivative.T) # removing bias weight, since its not going backwards
-                                                            # self.g_X includes bias from next layer, need to varify it's ok
-
-    # returns the loss
-    def loss(self, X, C):
-        m = X.shape[-1]  # batchsize
-        linear = X.T @ self.W  # linear mapping
-        max = np.max(linear, axis=1, keepdims=True)  # normalization
-        exp_linear = np.exp(linear - max)  # applying normalization
-        result = exp_linear / np.sum(exp_linear, axis=1, keepdims=True)  # softmax
-        loss = np.sum(C * np.log(result))
-        return (-1 / m) * loss
-
+    def gradient(self, X, y_hat, C):
+        m = C.shape[-1]  # batchsize
+        derivative = np.subtract(y_hat, C)
+        self.g_W = (1 / m) * (X @ derivative.T).T
+        self.g_b  = np.sum((1 / m) * derivative, axis=1, keepdims=True)
+        self.g_X = (1 / m) * (self.W.T @ derivative) 
+        
     # predics the labels themselves
     def predict_labels(self, output):
         return np.asarray([p[0] for p in self.softmax_predict(output)])
@@ -42,15 +28,16 @@ class SoftmaxRegression():
     def softmax_predict(self, output):
         max_args = np.argmax(output, axis=1).reshape(-1, 1)
         return max_args
-
-    def step(self, optimizer):
-        optimizer.step(self.g_W, self.W)
+        
+    def feed_forward(self, X):
+        linear = self.W @ X + self.b
+        max = np.max(linear, axis=0, keepdims=True)
+        exp_linear = np.exp(linear - max)
+        result = exp_linear / np.sum(exp_linear, axis=0, keepdims=True)
+        return result
+    
 
     # softmax
     def __call__(self, X):
-        linear = X.T @ self.W
-        max = np.max(linear, axis=1, keepdims=True)
-        exp_linear = np.exp(linear - max)
-        result = exp_linear / np.sum(exp_linear, axis=1, keepdims=True)
-        return result
+        return self.feed_forward(X)
     
