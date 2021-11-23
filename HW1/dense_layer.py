@@ -23,10 +23,12 @@ class Dense():
 
 
     def jacTMV_b(self, x, v):
+        m = x.shape[1]
+        # m=1
         linear = self.linear(x)
         act_deriv = self.activation.deriv(linear)
         act_hadamard = np.multiply(act_deriv, v)
-        self.g_b =  act_hadamard
+        self.g_b =  np.sum((1 / m) * act_hadamard, axis=1, keepdims=True)
         return self.g_b
 
 

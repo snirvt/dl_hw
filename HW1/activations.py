@@ -25,8 +25,9 @@ class Sigmoid:
     
 class Relu():
     def __init__(self):
-        self.activate = lambda x: np.max(0,x)
-        self.deriv = lambda x: 1 if x>0 else 0
+        self.activate = lambda x: x * (x > 0)
+        self.deriv = lambda x: 1. * (x > 0)
         
+            
     def __call__(self, X):
         return self.activate(X)
