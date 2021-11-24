@@ -1,12 +1,12 @@
 import numpy as np
-
+import numpy.matlib as npm
 class SoftmaxRegression():
     def __init__(self, input_dim, output_dim):
         self.W = self.init_weights(output_dim,input_dim)
         self.b = self.init_weights(output_dim, 1)
-        self.g_W = None
-        self.g_b = None
-        self.g_X = None
+        self.g_W = 0
+        self.g_b = 0
+        self.g_X = 0
 
     # initializes the weights
     def init_weights(self, input_dim, output_dim):
@@ -18,13 +18,12 @@ class SoftmaxRegression():
         derivative = np.subtract(y_hat, C)
         self.g_W = (1 / m) * (X @ derivative.T).T
         self.g_b  = np.sum((1 / m) * derivative, axis=1, keepdims=True)
-        self.g_X = (1 / m) * (self.W.T @ derivative) 
+        self.g_X = (1 / m) * (self.W.T @ derivative)
         
-    # predics the labels themselves
+        
     def predict_labels(self, output):
         return np.asarray([p[0] for p in self.softmax_predict(output)])
 
-    # arg max for softmax prediction
     def softmax_predict(self, output):
         max_args = np.argmax(output, axis=1).reshape(-1, 1)
         return max_args
@@ -36,8 +35,6 @@ class SoftmaxRegression():
         result = exp_linear / np.sum(exp_linear, axis=0, keepdims=True)
         return result
     
-
-    # softmax
     def __call__(self, X):
         return self.feed_forward(X)
     
