@@ -11,8 +11,6 @@ class Tanh:
     def __call__(self, X):
         return self.activate(X)
     
-    
-    
 class Sigmoid:
     def __init__(self):
         self.activate = lambda x: 1/(1 + np.exp(-x))
@@ -20,8 +18,6 @@ class Sigmoid:
     
     def __call__(self, X):
         return self.activate(X)
-    
-    
     
 class Relu():
     def __init__(self):
@@ -31,3 +27,4 @@ class Relu():
             
     def __call__(self, X):
         return self.activate(X)
+    
