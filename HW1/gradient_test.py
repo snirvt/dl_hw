@@ -48,7 +48,7 @@ def gradient_test_W():
     # plt.savefig('./figures/grad_test.png', transparent=True, bbox_inches='tight', pad_inches=0)
     plt.show()
     
-# gradient_test_W()
+gradient_test_W()
     
     
 def gradient_test_b():
