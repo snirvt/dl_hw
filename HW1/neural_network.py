@@ -1,12 +1,9 @@
-
 import numpy as np
+from copy import deepcopy
 
 from dense_layer import Dense
 from softmax_regression import SoftmaxRegression
 from activations import Tanh, Relu
-
-from copy import deepcopy
-
 from losses import CrossEntropy
 
 class NeuralNetwork():
@@ -15,12 +12,9 @@ class NeuralNetwork():
         self.lr = lr
         self.activation = activation
         self.model = []
-        self.g_X = []
-        self.g_W = []
-        self.g_b = []
         self.X_list = []
-        self.ff_res = np.nan
-        
+
+        self.init_gradient_tracks()
         self.init_model()
 
     
@@ -35,46 +29,39 @@ class NeuralNetwork():
         for i in range(len(self.model)):
             result = self.model[i](result)
             self.X_list.append(result)
-        self.ff_res = result
         return result
     
-    def loss(self, y_hat, C):
-        m = C.shape[-1]  # batchsize
-        loss = np.sum(C * np.log(y_hat))
-        return (-1 / m) * loss
         
     def step_layer(self, layer):
         layer.W -= self.lr * layer.g_W
         layer.b -= self.lr * layer.g_b
         
-    def backprop(self, C, update=True):
+    def init_gradient_tracks(self):
         self.g_X = []
         self.g_W = []
         self.g_b = []
-        self.model[-1].gradient(self.X_list[-2],self.X_list[-1], C) ## softmax has no b
-        g_X = self.model[-1].g_X
-        g_W = self.model[-1].g_W
-        g_b = self.model[-1].g_b
-        self.g_X.append(g_X)
-        self.g_W.append(g_W)
-        self.g_b.append(g_b)
-                        
-        # self.model[-1].W -= self.lr * self.model[-1].W
+        
+    def gradient_track(self, layer):
+        self.g_X.append(layer.g_X)
+        self.g_W.append(layer.g_W) 
+        self.g_b.append(layer.g_b)
+        return layer.g_X
+         
+    def backprop(self, C, update=True):
+        self.init_gradient_tracks()
+        self.model[-1].gradient(self.X_list[-2],self.X_list[-1], C)
+        g_X = self.gradient_track(self.model[-1])
+           
         if update:
             self.step_layer(self.model[-1])
         
         for i in reversed(range(len(self.model)-1)):
-            self.model[i].jacTMV_W(self.X_list[i], g_X)
-            self.model[i].jacTMV_b(self.X_list[i], g_X)
-            g_X = self.model[i].jacTMV_x(self.X_list[i], g_X)
-            self.g_X.append(g_X)
-            self.g_W.append(self.model[i].g_W)
-            self.g_b.append(self.model[i].g_b)
+            g_X = self.model[i].gradient(self.X_list[i], g_X)
+            _ = self.gradient_track(self.model[-1])
             if update:
                 self.step_layer(self.model[i])
+                
         
-        
-
     def __call__(self, X):
         return self.feed_forward(X)
     
