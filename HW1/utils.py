@@ -12,7 +12,7 @@ def train_test_split(data):
     return X_train, y_train, X_test, y_test
 
 # shuffles and splits the data to batches
-def shuffle_and_batch(X_train, y_train, X_test, y_test):
+def shuffle_and_batch(X_train, y_train):
     n_labels = y_train.shape[0]
     y_train_indices_T = get_indices_transpose(y_train)  # indices of label '1'
     X_train_T = X_train.T
@@ -20,8 +20,7 @@ def shuffle_and_batch(X_train, y_train, X_test, y_test):
     y_train = encode_one_hot(y_train, n_labels).T  # (2, 20000)
     X_train = X_train.T  # (2, 20000)
     train_loader = split_to_batches(X_train, y_train)
-    test_loader = split_to_batches(X_test, y_test)
-    return X_train, y_train, train_loader, test_loader
+    return X_train, y_train, train_loader
 
 # one hot encoding
 def encode_one_hot(labels, n_labels):

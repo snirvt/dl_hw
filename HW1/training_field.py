@@ -1,37 +1,24 @@
 
 import numpy as np
+import matplotlib.pyplot as plt
 from numpy.lib import utils
+from copy import deepcopy
 
 
 from neural_network import NeuralNetwork
+from dense_layer import Dense
+from res_layer import ResLayer
 from losses import CrossEntropy
-from activations import Tanh, Relu
-
-import matplotlib.pyplot as plt
-from utils import split_to_batches
-
-from copy import deepcopy
-
-nn = NeuralNetwork([2,10,10,2],Tanh(), 0.1)
-# nn(np.zeros((2,10)))
-
-# X_train = np.random.multivariate_normal([-1, -1], [[1, 0], [0, 1]], 50).T
-# X_train = np.concatenate((X_train, np.random.multivariate_normal([1, 1], [[1, 0], [0, 1]], 50).T), axis=1)
-# X_test = np.random.multivariate_normal([-1, -1], [[1, 0], [0, 1]], 50).T
-# X_test = np.concatenate((X_test, np.random.multivariate_normal([1, 1], [[1, 0], [0, 1]], 50).T), axis=1)
+from activations import Tanh, Relu, Sigmoid
+from utils import split_to_batches,shuffle_and_batch
+from configurations import config
 
 
-# y_train = np.zeros((2, 100)).astype(np.float32)
-# y_train[0,:50] = 1
-# y_train[1,50:] = 1
-# y_test = np.zeros((2, 100))
-# y_test[0,:50] = 1
-# y_test[1,50:] = 1
-# plt.scatter(X_train[0,:], X_train[1,:], c = y_train[0,:])
-# plt.legend()
-# plt.show()
 
-
+lr = 0.1
+# nn = NeuralNetwork([2,64,64,2],Tanh(), lr, Dense)
+lr = 0.2
+nn = NeuralNetwork([2,64,64,2],Sigmoid(), lr, ResLayer)
 
 dataset_name = 'SwissRollData'
 # dataset_name =  'PeaksData'
@@ -44,52 +31,98 @@ X_train, y_train, X_test, y_test = train_test_split(data)
 m = np.mean(X_train,axis=1).reshape(-1,1)
 sd = np.std(X_train,axis=1).reshape(-1,1)
 
-X_train = (X_train - m)/sd
-X_test = (X_test - m)/sd
+# X_train = (X_train - m)/sd
+# X_test = (X_test - m)/sd
 
 
-# batch_X_train, batch_y_train = split_to_batches(X_train, y_train)
+X_train, y_train, train_loader, = shuffle_and_batch(X_train, y_train)
+X_test, y_test, test_loader, = shuffle_and_batch(X_test, y_test)
+
+batch_X_train, batch_y_train = train_loader
+batch_X_test, batch_y_test = test_loader
 
 
 
+def accuracy(y_hat, y):
+    return (sum(sum(np.round(y_hat) == y))/2) / y.shape[-1]
 
-# X_train = np.array([[0,0],[1,0],[0,1], [1,1]]).T
-# y_train = np.array([[0,1],[1,0],[1,0],[0,1]]).T
-# X_test = np.array([[0,0],[1,0],[0,1], [1,1]]).T
-# y_test = np.array([[0,1],[1,0],[1,0],[0,1]]).T
+
+
 
 best_loss = float('inf')
 best_model = []
+err_train = []
+err_test = []
+acc_train = []
+acc_test = []
+
+
 for i in range(100):
-    if i % 10 == 0:
+    if i % 25 == 0:
         nn.lr *= 0.95
-    # for batch_x, batch_y in zip([X_train], [y_train]):
-    batch_x , batch_y = X_train, y_train
-    y_hat = nn(batch_x)
-    nn.backprop(batch_y)
-    # nn.model[0].W[0]
-    # y_hat_test = nn(X_test)
-    # if i % 25 == 0:
-    loss_train = CrossEntropy()(y_hat, batch_y)
-    acc = (sum(sum(np.round(y_hat) == batch_y))/2) / batch_y.shape[-1]
-    if loss_train < best_loss:
-        best_loss = loss_train
+        
+    err_train.append(0)
+    err_test.append(0)
+    acc_train.append(0)
+    acc_test.append(0)
+        
+    for batch_x, batch_y in zip(batch_X_train, batch_y_train):
+        y_hat = nn(batch_x)
+        nn.backprop(batch_y)
+        loss_train = CrossEntropy()(y_hat, batch_y)
+        acc = accuracy(y_hat, batch_y)
+        err_train[i] += loss_train
+        acc_train[i] += acc
+        
+    for batch_x, batch_y in zip(batch_X_test, batch_y_test):
+        y_test_hat = nn(batch_x)
+        loss_test = CrossEntropy()(y_test_hat, batch_y)
+        acc_val = accuracy(y_test_hat, batch_y)
+        err_test[i] += loss_test
+        acc_test[i] += acc_val
+
+        
+        
+    err_train[i] /= len(batch_X_train)
+    err_test[i]  /= len(batch_X_test)
+    acc_train[i] /= len(batch_X_train)
+    acc_test[i]  /= len(batch_X_test)    
+              
+    if err_test[i] < best_loss:
+        best_loss = err_test[i]
         best_model = deepcopy(nn)
-    # loss_test = CrossEntropy()(y_hat_test, y_test)
-    print('loss: {}, acc: {}'.format(loss_train,acc))#, loss_test)
-    
-
-    
-
+    print('loss: {:.4f}, acc: {:.4f}, loss val: {:.4f}, acc val: {:.4f}'.format(err_train[i],acc_train[i], err_test[i],acc_test[i]))
     
 y_pred = best_model(X_train)
 
 plt.scatter(X_train[0,:], X_train[1,:], c = np.round(y_pred[0]))
 plt.show()
 
+plt.scatter(X_train[0,:], X_train[1,:], c = np.round(y_train[0]))
+plt.show()
 
 
 
+plt.rcParams.update({'font.size': 22})
+
+plt.plot(err_train, label='Train Error')
+plt.plot(err_test, label='Test Error')
+plt.title('Loss')
+plt.xlabel('Epoch')
+plt.ylabel('Cross Entropy Loss')
+plt.ylim(0,1)
+plt.legend()
+plt.show()
+
+
+plt.plot(acc_train, label='Train Accuracy')
+plt.plot(acc_test, label='Test Accuracy')
+plt.title('Accuracy - lr: {},  batch size: {}'.format(lr,config.BATCH_SIZE))
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.ylim(0,1)
+plt.legend()
+plt.show()
 
 
 
