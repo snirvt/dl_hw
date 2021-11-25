@@ -16,12 +16,12 @@ from configurations import config
 
 
 lr = 0.1
-# nn = NeuralNetwork([2,64,64,2],Tanh(), lr, Dense)
-lr = 0.2
-nn = NeuralNetwork([2,64,64,2],Sigmoid(), lr, ResLayer)
+nn = NeuralNetwork([2,64,64,5],Tanh(), lr, Dense)
+# lr = 0.2
+# nn = NeuralNetwork([2,64,64,2],Sigmoid(), lr, ResLayer)
 
-dataset_name = 'SwissRollData'
-# dataset_name =  'PeaksData'
+# dataset_name = 'SwissRollData'
+dataset_name =  'PeaksData'
 from data.dataloader import DataLoader
 from utils import shuffle_and_batch, train_test_split, get_index
 
@@ -31,8 +31,8 @@ X_train, y_train, X_test, y_test = train_test_split(data)
 m = np.mean(X_train,axis=1).reshape(-1,1)
 sd = np.std(X_train,axis=1).reshape(-1,1)
 
-# X_train = (X_train - m)/sd
-# X_test = (X_test - m)/sd
+X_train = (X_train - m)/sd
+X_test = (X_test - m)/sd
 
 
 X_train, y_train, train_loader, = shuffle_and_batch(X_train, y_train)
@@ -44,10 +44,7 @@ batch_X_test, batch_y_test = test_loader
 
 
 def accuracy(y_hat, y):
-    return (sum(sum(np.round(y_hat) == y))/2) / y.shape[-1]
-
-
-
+    return (sum(np.argmax(y_hat, axis=0) == np.argmax(y, axis=0))) / y.shape[-1]
 
 best_loss = float('inf')
 best_model = []
@@ -95,10 +92,12 @@ for i in range(100):
     
 y_pred = best_model(X_train)
 
-plt.scatter(X_train[0,:], X_train[1,:], c = np.round(y_pred[0]))
+plt.scatter(X_train[0,:], X_train[1,:], c = np.round(np.argmax(y_pred,axis=0)))
+plt.colorbar()
 plt.show()
 
-plt.scatter(X_train[0,:], X_train[1,:], c = np.round(y_train[0]))
+plt.scatter(X_train[0,:], X_train[1,:], c = np.round(np.argmax(y_train,axis=0)))
+plt.colorbar()
 plt.show()
 
 
