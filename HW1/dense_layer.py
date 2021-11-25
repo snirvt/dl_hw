@@ -19,7 +19,7 @@ class Dense():
         linear = self.linear(x)
         act_deriv = self.activation.deriv(linear)
         act_hadamard = np.multiply(act_deriv, v)
-        self.g_b =  np.sum(act_hadamard, axis=1, keepdims=True)
+        self.g_b = np.sum(act_hadamard, axis=1, keepdims=True)
         return self.g_b
 
     def jacTMV_W(self, x, v):

@@ -27,9 +27,9 @@ def jacobian_test_x():
         e_normalized_d = eps * normalized_d
         x_perturbatzia = x + e_normalized_d
         fx_d = np.dot(lin1(x_perturbatzia)[:,0:1].T, u)
-        jackMV_x = lin1.jacTMV_x(x, u)[:,0:1]
+        jacMV_x = lin1.jacTMV_x(x, u)[:,0:1]
         no_grad.append(np.abs(fx_d - gx).squeeze())
-        x_grad.append(np.abs(fx_d - gx - e_normalized_d.T @ jackMV_x).squeeze())
+        x_grad.append(np.abs(fx_d - gx - e_normalized_d.T @ jacMV_x).squeeze())
     l = range(eps_num)
     plt.plot(l, no_grad, label='First Order')
     plt.plot(l, x_grad, label='Second Order')
@@ -62,7 +62,6 @@ def jacobian_test_b():
     for eps in eps_vals:
         lin1.b = deepcopy(org_b)
         e_normalized_d = eps * normalized_d
-        # x_perturbatzia = x + e_normalized_d
         lin1.b += e_normalized_d
         fx_d = np.dot(lin1(x)[:,0:1].T, u)
         lin1.b = deepcopy(org_b)
@@ -84,7 +83,7 @@ def jacobian_test_b():
 
 def jacobian_test_W():
     d = np.random.rand(2, 3)
-    x = np.random.rand(3, 1) ## x must be 1 sample, since the gradient should only be for 1 sample (gx[:,0:1], gx_d[:,0:1]) 
+    x = np.random.rand(3, 1)  
     normalized_d = d / np.linalg.norm(d)
     eps_num = 20
     eps_vals = np.geomspace(0.5, 0.5 ** eps_num, eps_num)
@@ -130,16 +129,13 @@ def jacobian_test_nn_x():
 
     eps_num = 20
     eps_vals = np.geomspace(0.5, 0.5 ** eps_num, eps_num)
-    # lin1 = Dense(3, 2, Tanh()) 
     lin1 = NeuralNetwork([2,10,10,2], lr=0.1)
     fx = lin1(x)[:,0:1]
-    # u = np.random.randn(2, 1)
-    # gx = np.dot(fx.T, u)
     no_grad, x_grad = [], []
 
-    labels = np.random.randint(2, size=1)  # randomly creates 3 labels for 10 samples
-    C = np.zeros((2,labels.size))          # 10 samples, 3 labels (10, 3)
-    C[labels,np.arange(labels.size)] = 1   # columns in c are one-hot encoded
+    labels = np.random.randint(2, size=1)  
+    C = np.zeros((2,labels.size))          
+    C[labels,np.arange(labels.size)] = 1   
 
     loss = CrossEntropy()
     fx_loss = loss(fx, C)
@@ -150,11 +146,10 @@ def jacobian_test_nn_x():
         
         fx_d = lin1(x_perturbatzia)
         fx_d_loss = loss(fx_d, C)
-        # jackMV_x = lin1.jacTMV_x(x, u)[:,0:1]
         lin1.backprop(C, update=False)
-        jackMV_x = lin1.g_X[-1]
+        jacMV_x = lin1.g_X[-1]
         no_grad.append(np.abs(fx_d_loss - fx_loss))
-        x_grad.append(np.abs(fx_d_loss - fx_loss - e_normalized_d.ravel().T @ jackMV_x.ravel()))
+        x_grad.append(np.abs(fx_d_loss - fx_loss - e_normalized_d.ravel().T @ jacMV_x.ravel()))
     l = range(eps_num)
     plt.plot(l, no_grad, label='First Order')
     plt.plot(l, x_grad, label='Second Order')
@@ -179,16 +174,13 @@ def jacobian_test_nn_W():
 
     eps_num = 20
     eps_vals = np.geomspace(0.5, 0.5 ** eps_num, eps_num)
-    # lin1 = Dense(3, 2, Tanh()) 
     lin1 = NeuralNetwork([2,2,10,2,2], lr = 0.1)
     fx = lin1(x)[:,0:1]
-    # u = np.random.randn(2, 1)
-    # gx = np.dot(fx.T, u)
     no_grad, x_grad = [], []
 
-    labels = np.random.randint(2, size=1)  # randomly creates 3 labels for 10 samples
-    C = np.zeros((2,labels.size))          # 10 samples, 3 labels (10, 3)
-    C[labels,np.arange(labels.size)] = 1   # columns in c are one-hot encoded
+    labels = np.random.randint(2, size=1)  
+    C = np.zeros((2,labels.size))         
+    C[labels,np.arange(labels.size)] = 1   
 
     loss = CrossEntropy()
     fx_loss = loss(fx, C)
@@ -196,16 +188,14 @@ def jacobian_test_nn_W():
     
     for eps in eps_vals:
         e_normalized_d = eps * normalized_d
-        # x_perturbatzia = x + e_normalized_d
         lin1.model[0].W = W + e_normalized_d
         fx_d = lin1(x)
         fx_d_loss = loss(fx_d, C)
-        # jackMV_x = lin1.jacTMV_x(x, u)[:,0:1]
         lin1.model[0].W = deepcopy(W)
         lin1.backprop(C, update=False)
-        jackMV_W = lin1.g_W[-1]
+        jacMV_W = lin1.g_W[-1]
         no_grad.append(np.abs(fx_d_loss - fx_loss))
-        x_grad.append(np.abs(fx_d_loss - fx_loss - e_normalized_d.ravel().T @ jackMV_W.ravel()))
+        x_grad.append(np.abs(fx_d_loss - fx_loss - e_normalized_d.ravel().T @ jacMV_W.ravel()))
     l = range(eps_num)
     plt.plot(l, no_grad, label='First Order')
     plt.plot(l, x_grad, label='Second Order')
@@ -235,16 +225,13 @@ def jacobian_test_nn_b():
 
     eps_num = 20
     eps_vals = np.geomspace(0.5, 0.5 ** eps_num, eps_num)
-    # lin1 = Dense(3, 2, Tanh()) 
     lin1 = NeuralNetwork([2,2,10,2,2], lr=0.1)
     fx = lin1(x)[:,0:1]
-    # u = np.random.randn(2, 1)
-    # gx = np.dot(fx.T, u)
     no_grad, x_grad = [], []
 
-    labels = np.random.randint(2, size=1)  # randomly creates 3 labels for 10 samples
-    C = np.zeros((2,labels.size))          # 10 samples, 3 labels (10, 3)
-    C[labels,np.arange(labels.size)] = 1   # columns in c are one-hot encoded
+    labels = np.random.randint(2, size=1)  
+    C = np.zeros((2,labels.size))          
+    C[labels,np.arange(labels.size)] = 1  
 
     loss = CrossEntropy()
     fx_loss = loss(fx, C)
@@ -252,16 +239,14 @@ def jacobian_test_nn_b():
     
     for eps in eps_vals:
         e_normalized_d = eps * normalized_d
-        # x_perturbatzia = x + e_normalized_d
         lin1.model[0].b = b + e_normalized_d
         fx_d = lin1(x)
         fx_d_loss = loss(fx_d, C)
-        # jackMV_x = lin1.jacTMV_x(x, u)[:,0:1]
         lin1.model[0].b = deepcopy(b)
         lin1.backprop(C, update=False)
-        jackMV_b = lin1.g_b[-1]
+        jacMV_b = lin1.g_b[-1]
         no_grad.append(np.abs(fx_d_loss - fx_loss))
-        x_grad.append(np.abs(fx_d_loss - fx_loss - e_normalized_d.ravel().T @ jackMV_b.ravel()))
+        x_grad.append(np.abs(fx_d_loss - fx_loss - e_normalized_d.ravel().T @ jacMV_b.ravel()))
     l = range(eps_num)
     plt.plot(l, no_grad, label='First Order')
     plt.plot(l, x_grad, label='Second Order')
@@ -271,7 +256,6 @@ def jacobian_test_nn_b():
     plt.yscale('log')
     plt.legend()
     plt.show()
-
 
 jacobian_test_nn_b()
 
