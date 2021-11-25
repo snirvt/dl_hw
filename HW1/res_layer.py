@@ -10,6 +10,7 @@ class ResLayer():
         self.g_X = None
         self.g_W1 = None
         self.g_W2 = None
+        self.g_W = None
         self.g_b = None
         self.activation = activation
 
@@ -36,9 +37,7 @@ class ResLayer():
         linear = self.linear_1(x)
         act_deriv = self.activation.deriv(linear)
         W2_diag_W1 = 0
-        
-        I + W2@(W1@x+b)* W1#@V
-        
+                
         (self.W2 @ (linear * (self.W1 @ v)))
         for i in range(x.shape[1]): 
             diag = np.diag(act_deriv[:,i])
@@ -48,7 +47,13 @@ class ResLayer():
         return self.g_X
 
 
-
+    def gradient(self,X,v):
+        self.jacTMV_W1_batch(X, v)
+        self.jacTMV_W2_batch(X, v)
+        self.jacTMV_b_batch(X, v)
+        self.jacTMV_x_batch(X, v)
+        self.g_W = (self.g_W1, self.g_W2)
+        return self.g_X
 
 
     # def jacTMV_x(self, X, v):
