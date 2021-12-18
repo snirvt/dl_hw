@@ -5,68 +5,47 @@ import torch.nn as nn
 
 
 class Encoder(nn.Module):  
-    def __init__(self, n_features, hidden_dim = 128):
+    def __init__(self, n_features, hidden_dim = 128, latent_dim=32, pixel_by_pixel = False,
+    bidirectional=False, num_layers = 1):
         super(Encoder, self).__init__()
         
         self.n_features = n_features
-        
         self.hidden_dim = hidden_dim
+        self.pixel_by_pixel = pixel_by_pixel
+        self.bidirectional = bidirectional
+        self.num_layers = num_layers
+        self.latent_dim = latent_dim
+        
+        self.dim_coeff = (self.bidirectional + 1) * self.num_layers * 2
         
         self.LSTM = nn.LSTM(
-            input_size=n_features,
+            input_size=self.n_features,
             hidden_size=self.hidden_dim,
-            num_layers=1,
-            batch_first=True
+            num_layers=num_layers,
+            batch_first=True,
+            bidirectional = bidirectional,
             )
-              
+
+        self.BN = nn.BatchNorm1d(self.dim_coeff * self.hidden_dim)  
+        self.DO = nn.Dropout(p=0.3)  
+        self.dense_1 = nn.Linear(self.dim_coeff * self.hidden_dim, 2*self.hidden_dim)
+        self.relu = nn.ReLU()
+        self.BN_2 = nn.BatchNorm1d(2*self.hidden_dim)
+        self.dense_2 = nn.Linear(2*self.hidden_dim, self.latent_dim)
+        self.dense_test = nn.Linear((self.bidirectional + 1) * self.hidden_dim, self.latent_dim)
+
     def forward(self, X):
-        z = []
-        for xT in X:
-            h_n = torch.zeros(1, 1, self.hidden_dim)
-            c_n = torch.zeros(1, 1, self.hidden_dim)
-            for xt in xT:
-                # Step through the sequence one element at a time.
-                # after each step, hidden contains the hidden state.
-                out, (h_n, c_n) = self.LSTM(xt.view(1, 1, -1), (h_n, c_n))
-            z.append(out)
-        return z
-                
-        
-
-    
-# n_features = 3    
-# hidden_dim = 2
-
-# lstm = nn.LSTM(input_size=n_features,
-#                 hidden_size=hidden_dim,
-#                 num_layers=1,
-#                 batch_first=True)
-# inputs = [torch.randn(1, 3) for _ in range(5)]  # make a sequence of length 5 dim = 3
-
-# inputs = torch.cat(inputs).view(len(inputs), 1, -1)
-# output, (h_n, c_n) = lstm(inputs)
-# z = h_n[0,-1,:]
-# output[-1]
- 
- 
-# inputs = [torch.randn(1, 3) for _ in range(3)]  # make a sequence of length 5 dim = 3
-# # inputs = torch.cat(inputs).view(len(inputs), 2, -1)
-
-# data = [[torch.zeros(1, 3) for _ in range(2)] ,[torch.ones(1, 3) for _ in range(20)]]
-
-
-
-# z = []
-# for xT in data:
-#     h_n = torch.zeros(1, 1, 2)
-#     c_n = torch.zeros(1, 1, 2)
-#     for xt in xT:
-#         # Step through the sequence one element at a time.
-#         # after each step, hidden contains the hidden state.
-#         out, (h_n, c_n) = lstm(xt.view(1, 1, -1), (h_n, c_n))
-#     z.append(out)    
-    
-    
- 
-# E = Encoder(n_features=3, hidden_dim = 2)
-# E(data)
+        if self.pixel_by_pixel:
+            X = X.reshape(X.shape[0],-1,1)
+        out, (h_n, c_n) = self.LSTM(X)
+        out_full = self.dense_test(out)
+        h_n = h_n.permute(1,2,0).reshape(-1, h_n.shape[0] * h_n.shape[-1])
+        c_n = c_n.permute(1,2,0).reshape(h_n.shape)
+        out = torch.concat([h_n, c_n], axis=1)
+        out = self.BN(out)
+        out = nn.Dropout(p=0.2)(out)
+        out = self.dense_1(out)
+        out = self.relu(out)
+        out = self.BN_2(out)
+        out = self.dense_2(out)
+        return out.reshape(-1,1,self.latent_dim), out_full
