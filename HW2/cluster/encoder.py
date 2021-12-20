@@ -8,6 +8,7 @@ class Encoder(nn.Module):
     def __init__(self, n_features, hidden_dim = 128, latent_dim=32, pixel_by_pixel = False,
     bidirectional=False, num_layers = 1):
         super(Encoder, self).__init__()
+        
         self.n_features = n_features
         self.hidden_dim = hidden_dim
         self.pixel_by_pixel = pixel_by_pixel
