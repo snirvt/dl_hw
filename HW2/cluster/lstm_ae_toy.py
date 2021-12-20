@@ -59,7 +59,7 @@ data = get_toy_data(n = 10000, T = 50)
 train_loader, val_loader, test_loader = toy_data_splitter(data, batch_size = 512)
 
 
-''' Grid Search '''
+''' Grid Serach '''
 grid_search = False
 if grid_search:
     best_val = float('inf')
@@ -69,9 +69,8 @@ if grid_search:
     for lr in [0.1, 0.01, 0.003]:
         for gradient_clipping in [1, 0.5, 0.1]:
             for hidden_state_size in [32, 64, 128]:
-                model = LSTMAutoencoder_syn(n_features=1, seq_len=50, hidden_dim_enc=hidden_state_size,
-                 hidden_dim_dec=hidden_state_size, latent_dim=32, bidirectional_enc=True,
-                num_layers_enc = 2, bidirectional_dec=True, num_layers_dec = 1, out_dim = 1)
+                model = LSTMAutoencoder_syn(n_features=1, seq_len=50, hidden_dim = hidden_state_size, latent_dim=32, bidirectional_enc=True,
+                num_layers_enc = 2, bidirectional_dec=False, num_layers_dec = 1, out_dim = 50)
                 model = model.to(device)
                 hyper_param_str = f'lr: {lr}, gc:{gradient_clipping}, hs: {hidden_state_size}'
                 model, history = train_model(model,lr,gradient_clipping, train_loader, test_loader, n_epochs)
@@ -85,14 +84,13 @@ if grid_search:
                     best_model = model
                     history_dict['best_model'] = model
                     history_dict['best_params'] = f'lr: {lr}, gc:{gradient_clipping}, hs: {hidden_state_size}'
-    print('\nBest hyperparameters are: {}'.format(history_dict['best_params']))
     np.save('grid_history.npy', history_dict) 
 ''' '''
 
 
 
 ''' Single Run '''
-n_epochs = 200
+n_epochs = 100
 model = LSTMAutoencoder_syn(n_features=1, seq_len=50, hidden_dim_enc=128, hidden_dim_dec=128, latent_dim=32, bidirectional_enc=True,
 num_layers_enc = 2, bidirectional_dec=True, num_layers_dec = 1, out_dim = 1)
 model = model.to(device)
@@ -105,7 +103,7 @@ plt.title('Loss Over Time')
 plt.xlabel('Time')
 plt.ylabel('Loss')
 plt.legend()
-plt.savefig('figures_Q1/loss_toy.png')
+plt.savefig('loss_toy.png')
 plt.close()
 '''' '''
 
@@ -113,7 +111,7 @@ plt.close()
 
 ''' Create Plots '''
 seq = next(iter(test_loader))
-for i,seq_num in enumerate([1, 2, 3]):
+for i,seq_num in enumerate([0, 1, 2]):
     pred_seq = model(seq[seq_num].reshape(1,50,1).to(device))
     pred_seq = pred_seq.reshape(50)
     plt.plot(seq[seq_num].numpy(), label='Test Signal')
@@ -122,6 +120,6 @@ for i,seq_num in enumerate([1, 2, 3]):
     plt.xlabel('Time')
     plt.ylabel('Signal')
     plt.legend()
-    plt.savefig(f'figures_Q1/syn{seq_num}.png')
+    plt.savefig(f'syn{seq_num}.png')
     plt.close()
 ''' '''

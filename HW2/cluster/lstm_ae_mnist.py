@@ -1,20 +1,17 @@
 
 
 import numpy as np
-import matplotlib.pyplot as plt
-import os
-from copy import deepcopy
-
 import torch
 import torch.nn as nn
-import torchvision.transforms as transforms
-import torchvision.datasets as datasets
-from torchvision.transforms import ToTensor
+from copy import deepcopy
 
 from lstm_autoencoder import LSTMAutoencoder_mnist
 
+import torchvision.datasets as datasets
+from torchvision.transforms import ToTensor
 
-
+import matplotlib.pyplot as plt
+import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -23,6 +20,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 def train_model(model, train_dataset, val_dataset, n_epochs):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
     criterion_AE = nn.MSELoss().to(device)
+    # criterion_AE = nn.L1Loss().to(device)
     criterion_CE = nn.CrossEntropyLoss().to(device)
 
     history = dict(train=[], val=[], train_acc=[], val_acc=[])
@@ -82,14 +80,19 @@ def train_model(model, train_dataset, val_dataset, n_epochs):
     model.load_state_dict(best_model_wts)
     return model.eval(), history
 
+import torchvision.transforms as transforms
+mean = torch.tensor([0.1306])
+std = torch.tensor([0.3081])
 
-def normalize(img):
+
+def normzlize(img):
     img *= (1.0/img.max())
     return img
 
 transform = transforms.Compose([
                 transforms.ToTensor(),
-                normalize   
+                # transforms.Normalize(mean, std
+                normzlize   
             ])
 
 mnist_trainset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
@@ -105,51 +108,58 @@ test_loader = torch.utils.data.DataLoader(mnist_testset,
                             shuffle=False,
                             num_workers=1)
 
-pix_by_pix = False
-if not pix_by_pix:
-    model = LSTMAutoencoder_mnist(n_features=28,seq_len=28, latent_dim=512, hidden_dim_enc = 64, hidden_dim_dec = 64,
-    pix_by_pix = pix_by_pix, bidirectional_enc=True, num_layers_enc = 2, bidirectional_dec=False, num_layers_dec = 1) 
-    model = model.to(device)
-    model, history = train_model(model, train_loader, test_loader, 50)
-else:
-    model = LSTMAutoencoder_mnist(n_features=1,seq_len=784,latent_dim=128, hidden_dim_enc = 32, hidden_dim_dec = 32,
-    pix_by_pix=pix_by_pix, bidirectional_enc=True, num_layers_enc = 2, bidirectional_dec=False, num_layers_dec = 1, out_dim = 1)
-    model = model.to(device)
-    model, history = train_model(model, train_loader, test_loader, 50)
+# row by row
+# pix_by_pix = False
+# model = LSTMAutoencoder_mnist(n_features=28,seq_len=28, latent_dim=512, hidden_dim_enc = 64, hidden_dim_dec = 64,
+#  pix_by_pix = pix_by_pix, bidirectional_enc=True, num_layers_enc = 2, bidirectional_dec=False, num_layers_dec = 1) 
+# model = model.to(device)
+# model, history = train_model(model, train_loader, test_loader, 20)
 
-''' Loss + Accuracy'''
-plt.plot(history['train'], label='Train Loss')
-plt.plot(history['val'], label='Validation Loss')
-plt.title('Loss Over Time')
-plt.xlabel('Time')
-plt.ylabel('Loss')
-plt.legend()
-plt.savefig('figures_Q2/loss_mnist.png')
+pix_by_pix = True
+model = LSTMAutoencoder_mnist(n_features=1,seq_len=784,latent_dim=128, hidden_dim_enc = 32, hidden_dim_dec = 32,
+ pix_by_pix=pix_by_pix, bidirectional_enc=True, num_layers_enc = 2, bidirectional_dec=False, num_layers_dec = 1, out_dim = 1)
+model = model.to(device)
+model, history = train_model(model, train_loader, test_loader, 20)
+
+
+
+# cnt = 0
+# model_dict = {}
+# for T in [20, 30, 50, 100, 300, 500]:
+    # cnt += T
+    # model, history = train_model(model, train_loader, test_loader, T)
+    # model_dict[cnt] = model
+    # np.save('mnist_models.npy', model_dict) 
+
+    # im,lab = next(iter(test_loader))
+    # im_num = 666
+    # plt.imshow(im[im_num].permute(1, 2, 0).numpy(), cmap='gray')
+    # plt.savefig(f'original_{cnt}.png')
+    # pred, lable = model(im[im_num].to(device))
+    # plt.imshow(pred.reshape(28, 28).detach().to('cpu').numpy(), cmap='gray')
+    # plt.savefig(f'pred_{cnt}.png')
+    # plt.close()
+
+
+
+
+
+
+
+im,lab = next(iter(test_loader))
+im_num = 666
+plt.imshow(im[im_num].permute(1, 2, 0).numpy(), cmap='gray')
+plt.savefig('original.png')
+# plt.show()
+pred, lable = model(im[im_num].to(device))
+# pred[pred<0] = 0
+
+
+# mean = torch.tensor([0.1306]).to('cuda')
+# std = torch.tensor([0.3081]).to('cuda')
+# pred = pred*std + mean
+
+plt.imshow(pred.reshape(28, 28).detach().to('cpu').numpy(), cmap='gray')
+plt.savefig('pred.png')
 plt.close()
-
-plt.plot(history['train_acc'], label='Train Accuracy')
-plt.plot(history['val_acc'], label='Validation Accuracy')
-plt.title('Accuracy Over Time')
-plt.xlabel('Time')
-plt.ylabel('Accuracy')
-plt.legend()
-plt.savefig('figures_Q2/acc_mnist.png')
-plt.close()
-'''' '''
-
-
-''' Create prediction plots '''
-im, lable = next(iter(test_loader))
-for im_num,seq_num in enumerate([0, 1, 2]):
-    plt.imshow(im[im_num].permute(1, 2, 0).numpy(), cmap='gray')
-    plt.savefig(f'figures_Q2/original_pix_by_pix_{seq_num}.png')
-    plt.close()
-    pred, lable = model(im[im_num].to(device))
-    lable_pred = np.argmax(lable.detach().to('cpu').numpy())
-    plt.imshow(pred.reshape(28, 28).detach().to('cpu').numpy(), cmap='gray')
-    plt.title(f'Ex: {im_num}, prediction: {lable_pred}')
-    plt.savefig(f'figures_Q2/reconstructed_pix_by_pix_{seq_num}.png')
-    plt.close()
-''' '''
-
 
