@@ -9,6 +9,10 @@ from copy import deepcopy
 
 from lstm_autoencoder import LSTMAutoencoder_sp500
 
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def train_model(model,lr,gradient_clipping, train_loader, val_loader, n_epochs):
@@ -142,15 +146,15 @@ batch_size = 64
 train_loader = torch.utils.data.DataLoader(Train_data,
                             batch_size=batch_size,
                             shuffle=True,
-                            num_workers=1)
+                            num_workers=0)
 val_loader = torch.utils.data.DataLoader(Val_data,
                             batch_size=batch_size,
                             shuffle=True,
-                            num_workers=1)
+                            num_workers=0)
 test_loader = torch.utils.data.DataLoader(Test_data,
                             batch_size=batch_size,
                             shuffle=False,
-                            num_workers=1)
+                            num_workers=0)
 
 seq_len = Train_data.shape[1]
 
@@ -230,7 +234,7 @@ for i,seq_num in enumerate([0, 1, 2]):
     model.seq_len = len(X)//2
     res = []
     for j in range(len(X)//2+1):
-        pred_seq = model(X_half.reshape(1,len(X_half),1).to(device))[2].to(device)
+        pred_seq = model(X_half.reshape(1,len(X_half),1).to(device),True)[2].to(device)
         pred_seq = pred_seq.reshape(1)
         res.append(pred_seq.to('cpu').detach()[0])
         X_half = torch.cat([X_half[1:],pred_seq])

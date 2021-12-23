@@ -74,7 +74,7 @@ class LSTMAutoencoder_sp500(nn.Module):
 
         self.dense = nn.Linear(self.latent_dim + 1, 1) 
 
-    def forward(self, X):
+    def forward(self, X, predict_future = False):
         for sub_part in range(self.seq_len // self.sub_seq_size):
             sub_x = X[:,sub_part * self.sub_seq_size : (sub_part + 1)*self.sub_seq_size,:] 
             sub_z, full_sub_z = self.encoder(sub_x)
@@ -90,7 +90,8 @@ class LSTMAutoencoder_sp500(nn.Module):
             sub_x = X[:,-(self.seq_len % self.sub_seq_size): ,:] 
             sub_z, full_sub_z = self.encoder(sub_x)
             sub_x, _ = self.decoder(sub_z)
-            X_reconstructed = torch.cat([X_reconstructed, sub_x],axis=1).flatten()[:-(self.seq_len % self.sub_seq_size+1)]
+            # X_reconstructed = torch.cat([X_reconstructed, sub_x],axis=1).flatten()[:-(self.seq_len % self.sub_seq_size+1)]
+            X_reconstructed = torch.cat([X_reconstructed, sub_x[:,-(self.seq_len % self.sub_seq_size):,:]],axis=1)
             Z = torch.cat([Z, full_sub_z],axis=1)
 
         X_t = X[:,:-1,:]
@@ -98,5 +99,7 @@ class LSTMAutoencoder_sp500(nn.Module):
         Z_future = torch.cat([X[:,-1:,:], Z[:,-1:,:]],axis=2)
 
         Y_t_pred = self.dense(Z_past)
-        future_y = self.dense(Z_future)
+        future_y = 0
+        if predict_future:
+            future_y = self.dense(Z_future)
         return X_reconstructed.reshape(X.shape), Y_t_pred, future_y
